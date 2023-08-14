@@ -30,8 +30,6 @@
 
 Using [ark_circom](https://crates.io/crates/ark-circom), we can generate proofs for HollowDB. Only Groth16 is supported as of yet.
 
--   TODO : Use [Poseidon](https://github.com/arnaucube/poseidon-rs) for `computeKey`
-
 ## Testing
 
 You can test via:
@@ -40,5 +38,3 @@ You can test via:
 # release is important, hangs otherwise
 cargo test --release
 ```
-
-(TODO: see https://docs.sui.io/learn/cryptography/groth16 for inputs)
