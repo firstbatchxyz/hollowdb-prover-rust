@@ -2,8 +2,8 @@ use std::{fs::File, io::BufReader, str::FromStr};
 
 use ark_bn254::Bn254;
 use ark_circom::{read_zkey, CircomBuilder, CircomCircuit, CircomConfig, CircomReduction};
-use ark_groth16::{prepare_verifying_key, Groth16, Proof, ProvingKey};
-use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem};
+use ark_groth16::{Groth16, Proof, ProvingKey};
+use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem, Result};
 use ark_std::rand::thread_rng;
 use num_bigint::BigInt;
 
@@ -71,14 +71,12 @@ pub fn setup_circuit(builder: CircomBuilder<Bn254>) -> ProvingKey<Bn254> {
     .unwrap()
 }
 
-// couldnt get this to work yet
-// pub fn prove(circuit: CircomCircuit<Bn254>, pkey: &ProvingKey<Bn254>) -> Proof<Bn254> {
-//     let mut rng = thread_rng();
-//     // let public_inputs = circuit.get_public_inputs().unwrap();
-//     let proof = Groth16::<Bn254, CircomReduction>::create_random_proof_with_reduction(
-//         circuit, pkey, &mut rng,
-//     )
-//     .unwrap();
+/// Creates a proof from a circuit with public inputs fed into.
+pub fn prove_circuit(
+    circuit: CircomCircuit<Bn254>,
+    pkey: &ProvingKey<Bn254>,
+) -> Result<Proof<Bn254>> {
+    let mut rng = thread_rng();
 
-//     proof
-// }
+    Groth16::<Bn254, CircomReduction>::create_random_proof_with_reduction(circuit, pkey, &mut rng)
+}
