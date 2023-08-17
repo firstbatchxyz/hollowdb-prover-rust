@@ -20,8 +20,8 @@ pub fn load_prover_key(pkey_path: &str) -> ProvingKey<Bn254> {
     params
 }
 
-/// Sets circuit input signals via the given CircomBuilder.
-/// String arguments should be convertable to a BigInt.
+/// Given a config, will provide the inputs and return the circuit.
+/// Will panic if the string arguments are not convertable to a BigInt.
 pub fn compute_witness(
     cfg: CircomConfig<Bn254>,
     preimage: &str,
