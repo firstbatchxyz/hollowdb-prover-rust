@@ -22,7 +22,8 @@ mod tests {
             "901231230202",
             "3279874327432432781189",
             "9811872342347234789723",
-        );
+        )
+        .unwrap();
         let public_inputs = circom.get_public_inputs().unwrap();
 
         // generate proof
