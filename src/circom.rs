@@ -102,16 +102,19 @@ mod tests {
             BigUint::from_str("9811872342347234789723").unwrap(),
         )
         .unwrap();
-        let public_inputs = circom.get_public_inputs().unwrap();
 
         // generate proof
         let proof = circom::prove_circuit(circom, &prover_key).unwrap();
 
-        println!("{:?}", public_inputs);
-
         // verify proof
-        let verified =
-            verifier::verify_proof_with_pkey(&proof, &public_inputs, &prover_key).unwrap();
+        let verified = verifier::verify_proof_with_pkey_and_inputs(
+            &proof,
+            "4067124373014308708177105322643381071508707955636716225484979994368986851155",
+            "3279874327432432781189",
+            "9811872342347234789723",
+            &prover_key,
+        )
+        .unwrap();
 
         assert!(verified, "Proof rejected!");
     }
