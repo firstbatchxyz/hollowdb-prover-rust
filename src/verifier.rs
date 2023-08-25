@@ -16,15 +16,3 @@ pub fn verify_proof_with_pkey(
     let verifier_key = &proving_key.vk;
     GrothBn254::verify_proof(&prepare_verifying_key(verifier_key), &proof, &public_inputs)
 }
-
-// couldnt get this to work yet
-// pub fn prove(circuit: CircomCircuit<Bn254>, pkey: &ProvingKey<Bn254>) -> Proof<Bn254> {
-//     let mut rng = thread_rng();
-//     // let public_inputs = circuit.get_public_inputs().unwrap();
-//     let proof = Groth16::<Bn254, CircomReduction>::create_random_proof_with_reduction(
-//         circuit, pkey, &mut rng,
-//     )
-//     .unwrap();
-
-//     proof
-// }

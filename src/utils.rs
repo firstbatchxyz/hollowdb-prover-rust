@@ -1,13 +1,8 @@
-use std::str::FromStr;
-
-use ripemd::{Digest, Ripemd160};
-// use std::string::FromUtf8Error;
-
-use serde::Serialize;
-
-use ff::{hex::ToHex, PrimeField};
-use num_bigint::{BigInt, BigUint};
+use ff::PrimeField;
+use num_bigint::BigUint;
 use poseidon_rs::{Fr, Poseidon};
+use ripemd::{Digest, Ripemd160};
+use serde::Serialize;
 
 /// Compute a key from a given preimage.
 ///
@@ -15,23 +10,25 @@ use poseidon_rs::{Fr, Poseidon};
 /// does not have prepended zeros.
 pub fn compute_key(preimage: BigUint) -> String {
     // bigint to field element
+    // TODO: handle error
     let felt = Fr::from_str(preimage.to_string().as_str()).unwrap();
 
+    // TODO: handle error
     let trimmed_digest = Poseidon::new()
         .hash(vec![felt])
         .unwrap()
         .to_string()
-        .replace("Fr(0x", "")
-        .trim_start_matches('0')
-        .trim_end_matches(')')
+        .replace("Fr(0x", "") // remove "Fr(0x" prefix
+        .trim_start_matches('0') // remove prepended zeros
+        .trim_end_matches(')') // remove last parentheses
         .to_string();
 
-    "0x".to_string() + &trimmed_digest
+    "0x".to_string() + &trimmed_digest // add 0x back again
 }
 
 /// Given any input, hash it to a circuit-friendly value.
 pub fn hash_to_group<T: Serialize>(input: &T) -> BigUint {
-    // TODO: handle this error too
+    // TODO: handle error
     let stringified = serde_json::to_string(input).unwrap();
 
     let mut hasher = Ripemd160::new();
@@ -51,20 +48,40 @@ mod tests {
     use std::{fs::File, io::BufReader, str::FromStr};
 
     #[test]
-    fn test_hash_to_group() {
-        // #[derive(Serialize)]
-        // struct Address {
-        //     street: String,
-        //     city: String,
-        // }
+    fn test_hash_to_group_string() {
+        assert_eq!(
+            hash_to_group(&"quick brown fox jumpes over the lazy dog".to_string()).to_string(),
+            "1428051172494059108075242303790827279360348377618"
+        );
 
-        // let address = Address {
-        //     street: "10 Downing Street".to_owned(),
-        //     city: "London".to_owned(),
-        // };
+        assert_eq!(
+            hash_to_group(&"hi there".to_string()).to_string(),
+            "225037454736096360469008883958883233963769495287"
+        );
+    }
 
-        let result = hash_to_group(&"hi there".to_string());
-        println!("RESULT {:?}", result);
+    #[test]
+    fn test_hash_to_group_struct() {
+        #[derive(Serialize)]
+        struct MyStruct {
+            foo: i32,
+            bar: bool,
+            baz: String,
+        }
+
+        let obj = MyStruct {
+            foo: 123,
+            bar: true,
+            baz: "zab".to_owned(),
+        };
+
+        // note that the order of fields is important!
+        // foo-bar-baz struct will have a different hash
+        // compared to baz-bar-foo, bar-foo-baz etc.
+        assert_eq!(
+            hash_to_group(&obj).to_string(),
+            "456108647815456389709004505861143737447371420350"
+        );
     }
 
     #[test]
