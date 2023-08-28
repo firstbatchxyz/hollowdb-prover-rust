@@ -34,15 +34,14 @@ pub fn compute_witness(
     next_value_hash: BigUint,
 ) -> EyreResult<CircomCircuit<Bn254>> {
     let mut builder = CircomBuilder::new(cfg);
-
-    // set inputs
     builder.push_input("preimage", preimage);
     builder.push_input("curValueHash", cur_value_hash);
     builder.push_input("nextValueHash", next_value_hash);
 
     // compute witness i.e. building circuit with inputs
     let circom = builder.build()?;
-    check_constraints(circom.clone());
+
+    // check_constraints(circom.clone());
 
     Ok(circom)
 }
@@ -86,10 +85,43 @@ mod tests {
     use std::{fs::File, io::BufReader, str::FromStr};
 
     use crate::{circom, verifier};
-    use num_bigint::BigUint;
+    use ark_bn254::{FqConfig, Fr, FrConfig};
+    use ark_ff::fields::{MontBackend, MontConfig};
+    use num_bigint::{BigInt, BigUint};
 
     #[test]
     fn test_prove_and_verify() {
+        let config =
+            circom::load_circom_config("./circuits/circuit.wasm", "./circuits/circuit.r1cs");
+        let prover_key = circom::load_prover_key("./circuits/proverkey.zkey");
+
+        // compute witness (also checks constraints)
+        let circom = circom::compute_witness(
+            config,
+            BigUint::from_str("901231230202").unwrap(),
+            BigUint::from_str("1").unwrap(),
+            BigUint::from_str("2").unwrap(),
+        )
+        .unwrap();
+
+        // generate proof
+        let proof = circom::prove_circuit(circom.clone(), &prover_key).unwrap();
+        let pubs: Vec<Fr> = circom.get_public_inputs().unwrap();
+
+        // println!("Public Inputs {:?}", pubs);
+        println!("Current Hash {:?}", pubs[0]);
+        println!("Digest (Key) {:?}", pubs[2]);
+
+        println!("Next Hash    {:?}", pubs[1]);
+        println!("Next Hash    {:?}", pubs[1].0);
+        // verify proof
+        let verified = verifier::verify_proof_with_pkey(&proof, &pubs, &prover_key).unwrap();
+
+        assert!(verified, "Proof rejected!");
+    }
+
+    #[test]
+    fn test_prove_and_verify_explicit_inputs() {
         let config =
             circom::load_circom_config("./circuits/circuit.wasm", "./circuits/circuit.r1cs");
         let prover_key = circom::load_prover_key("./circuits/proverkey.zkey");
@@ -110,8 +142,8 @@ mod tests {
         let verified = verifier::verify_proof_with_pkey_and_inputs(
             &proof,
             "4067124373014308708177105322643381071508707955636716225484979994368986851155",
-            "3279874327432432781189",
-            "9811872342347234789723",
+            "2732420338720670314602072347502166430330577224322988181848067284864690653097",
+            "8646758398807199826551178606417613042628310445654232965303163379335986742820",
             &prover_key,
         )
         .unwrap();

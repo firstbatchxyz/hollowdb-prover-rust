@@ -97,7 +97,9 @@ mod tests {
             bar: false,
             baz: "baz".to_owned(),
         };
-        let preimage = BigUint::from_str("901231230202").unwrap();
-        prover.prove(preimage, cur_value, next_value);
+        let preimage = BigUint::from_str("123456789").unwrap();
+
+        let proof = prover.prove(preimage, cur_value, next_value);
+        println!("{:?}", proof);
     }
 }

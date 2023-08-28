@@ -29,9 +29,9 @@ pub fn verify_proof_with_pkey_and_inputs(
     proving_key: &ProvingKey<Bn254>,
 ) -> Result<bool, SynthesisError> {
     let public_inputs = vec![
-        Fr::from_str(digest).unwrap(),
         Fr::from_str(cur_value_hash).unwrap(),
         Fr::from_str(next_value_hash).unwrap(),
+        Fr::from_str(digest).unwrap(),
     ];
 
     verify_proof_with_pkey(proof, &public_inputs, proving_key)

@@ -26,6 +26,14 @@
     </a>
 </p>
 
+TODOS:
+
+-   Return `Result`s instead of unwrapping everywhere
+-   Export proof & public sigals as JSON
+-   Read verifier key from JSON
+-   Weird bug in direct assignments within circuit?
+-   Check if tests are runnable without `--release` ([issue](https://github.com/arkworks-rs/circom-compat/issues/27))
+
 ## Usage
 
 Using [ark_circom](https://crates.io/crates/ark-circom), we can generate proofs for HollowDB. Only Groth16 is supported as of yet.
@@ -37,4 +45,6 @@ You can test via:
 ```sh
 # release is important, hangs otherwise
 cargo test --release
+
+cargo test --release -- --nocapture
 ```
