@@ -1,0 +1,10 @@
+{
+    "devDependencies": {
+        "snarkjs": "^0.7.0"
+    },
+    "scripts": {
+        "test": "cargo test --release",
+        "posttest": "yarn verify",
+        "verify": "npx snarkjs g16v ./circuits/verification_key.json ./out/public.json ./out/proof.json"
+    }
+}

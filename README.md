@@ -29,10 +29,6 @@
 TODOS:
 
 -   Return `Result`s instead of unwrapping everywhere
--   Export proof & public sigals as JSON
--   Read verifier key from JSON
--   Weird bug in direct assignments within circuit?
--   Check if tests are runnable without `--release` ([issue](https://github.com/arkworks-rs/circom-compat/issues/27))
 
 ## Usage
 
@@ -43,8 +39,10 @@ Using [ark_circom](https://crates.io/crates/ark-circom), we can generate proofs 
 You can test via:
 
 ```sh
-# release is important, hangs otherwise
 cargo test --release
 
+# see println's in there
 cargo test --release -- --nocapture
 ```
+
+Note that due to an [issue](https://github.com/arkworks-rs/circom-compat/issues/27) in `ark-circom` we have to run in release mode, otherwise it hangs.

@@ -1,11 +1,10 @@
-use std::borrow::Cow;
-
 use crate::{circom, utils::hash_to_group};
 use ark_bn254::{Bn254, Fr};
 use ark_circom::CircomConfig;
-use ark_groth16::{Groth16, Proof, ProvingKey};
+use ark_groth16::{Proof, ProvingKey};
 use num_bigint::BigUint;
 use serde::Serialize;
+use std::fs::write;
 pub struct HollowProver {
     config: CircomConfig<Bn254>,
     prover_key: ProvingKey<Bn254>,
@@ -24,7 +23,7 @@ impl HollowProver {
         preimage: BigUint,
         cur_value: T,
         next_value: T,
-    ) -> Proof<Bn254> {
+    ) -> (Proof<Bn254>, Vec<Fr>) {
         let cur_value_hash = hash_to_group(&cur_value);
         let next_value_hash = hash_to_group(&next_value);
 
@@ -36,7 +35,9 @@ impl HollowProver {
         )
         .unwrap();
 
-        circom::prove_circuit(circom, &self.prover_key).unwrap()
+        let proof = circom::prove_circuit(circom.clone(), &self.prover_key).unwrap();
+        let pubs = circom.get_public_inputs().unwrap();
+        (proof, pubs)
     }
 
     pub fn prove_hashed<T: Serialize>(
@@ -44,7 +45,7 @@ impl HollowProver {
         preimage: BigUint,
         cur_value_hash: BigUint,
         next_value_hash: BigUint,
-    ) -> Proof<Bn254> {
+    ) -> (Proof<Bn254>, Vec<Fr>) {
         let circom = circom::compute_witness(
             self.config.clone(),
             preimage,
@@ -53,13 +54,21 @@ impl HollowProver {
         )
         .unwrap();
 
-        // generate proof
-        circom::prove_circuit(circom, &self.prover_key).unwrap()
+        let proof = circom::prove_circuit(circom.clone(), &self.prover_key).unwrap();
+        let pubs = circom.get_public_inputs().unwrap();
+        (proof, pubs)
     }
 
-    /// TODO
-    pub fn export_proof(proof: Proof<Bn254>) -> String {
-        unimplemented!();
+    pub fn export_proof(&self, proof: &Proof<Bn254>) {
+        write("./out/proof.json", circom::export_proof(proof)).expect("Unable to write file");
+    }
+
+    pub fn export_public_signals(&self, public_signals: &Vec<Fr>) {
+        write(
+            "./out/public.json",
+            circom::export_public_signals(public_signals),
+        )
+        .expect("Unable to write file");
     }
 }
 
@@ -68,7 +77,7 @@ mod tests {
     use super::*;
     use num_bigint::BigUint;
     use serde::Serialize;
-    #[allow(dead_code)]
+
     #[allow(unused_imports)]
     use std::{fs::File, io::BufReader, str::FromStr};
 
@@ -99,7 +108,9 @@ mod tests {
         };
         let preimage = BigUint::from_str("123456789").unwrap();
 
-        let proof = prover.prove(preimage, cur_value, next_value);
-        println!("{:?}", proof);
+        let (proof, public_signals) = prover.prove(preimage, cur_value, next_value);
+
+        prover.export_proof(&proof);
+        prover.export_public_signals(&public_signals);
     }
 }

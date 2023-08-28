@@ -29,3 +29,6 @@ rust-project.json
 !.vscode/extensions.json
 *.iml
 *.o
+
+# node
+node_modules

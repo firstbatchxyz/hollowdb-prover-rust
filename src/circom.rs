@@ -1,6 +1,9 @@
+#[allow(unused_imports)]
 use std::{fs::File, io::BufReader, str::FromStr};
 
-use ark_bn254::Bn254;
+use serde::Serialize;
+
+use ark_bn254::{Bn254, Fr};
 use ark_circom::{read_zkey, CircomBuilder, CircomCircuit, CircomConfig, CircomReduction};
 use ark_groth16::{Groth16, Proof, ProvingKey};
 use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystem, Result as ArkResult};
@@ -78,6 +81,44 @@ pub fn prove_circuit(
     Groth16::<Bn254, CircomReduction>::create_random_proof_with_reduction(circuit, pkey, &mut rng)
 }
 
+/// Exports public signals as a JSON array of string bigints.
+pub fn export_public_signals(pubs: &Vec<Fr>) -> String {
+    let signal_strings = pubs.iter().map(|s| s.to_string()).collect::<Vec<String>>();
+
+    serde_json::to_string(&signal_strings).unwrap()
+}
+
+#[derive(Serialize)]
+struct SnarkjsProof {
+    pi_a: [String; 3],
+    pi_b: [[String; 2]; 3],
+    pi_c: [String; 3],
+    protocol: String,
+}
+
+/// Exports proof as a JSON object.
+pub fn export_proof(proof: &Proof<Bn254>) -> String {
+    let obj = SnarkjsProof {
+        pi_a: [
+            proof.a.x.to_string(),
+            proof.a.y.to_string(),
+            "1".to_string(),
+        ],
+        pi_b: [
+            [proof.b.x.c0.to_string(), proof.b.x.c1.to_string()],
+            [proof.b.y.c0.to_string(), proof.b.y.c1.to_string()],
+            ["1".to_string(), "0".to_string()],
+        ],
+        pi_c: [
+            proof.c.x.to_string(),
+            proof.c.y.to_string(),
+            "1".to_string(),
+        ],
+        protocol: "groth16".to_string(),
+    };
+    serde_json::to_string(&obj).unwrap()
+}
+
 #[cfg(test)]
 mod tests {
     #[allow(dead_code)]
@@ -85,9 +126,9 @@ mod tests {
     use std::{fs::File, io::BufReader, str::FromStr};
 
     use crate::{circom, verifier};
-    use ark_bn254::{FqConfig, Fr, FrConfig};
-    use ark_ff::fields::{MontBackend, MontConfig};
-    use num_bigint::{BigInt, BigUint};
+    use ark_bn254::{Bn254, Fr};
+    use ark_groth16::Proof;
+    use num_bigint::BigUint;
 
     #[test]
     fn test_prove_and_verify() {
@@ -95,27 +136,26 @@ mod tests {
             circom::load_circom_config("./circuits/circuit.wasm", "./circuits/circuit.r1cs");
         let prover_key = circom::load_prover_key("./circuits/proverkey.zkey");
 
-        // compute witness (also checks constraints)
         let circom = circom::compute_witness(
             config,
-            BigUint::from_str("901231230202").unwrap(),
+            BigUint::from_str("123456789").unwrap(),
             BigUint::from_str("1").unwrap(),
             BigUint::from_str("2").unwrap(),
         )
         .unwrap();
 
-        // generate proof
-        let proof = circom::prove_circuit(circom.clone(), &prover_key).unwrap();
-        let pubs: Vec<Fr> = circom.get_public_inputs().unwrap();
+        let proof: Proof<Bn254> = circom::prove_circuit(circom.clone(), &prover_key).unwrap();
+        let public_signals: Vec<Fr> = circom.get_public_inputs().unwrap();
 
-        // println!("Public Inputs {:?}", pubs);
-        println!("Current Hash {:?}", pubs[0]);
-        println!("Digest (Key) {:?}", pubs[2]);
+        println!("Proof:\n{:?}", circom::export_proof(&proof));
 
-        println!("Next Hash    {:?}", pubs[1]);
-        println!("Next Hash    {:?}", pubs[1].0);
-        // verify proof
-        let verified = verifier::verify_proof_with_pkey(&proof, &pubs, &prover_key).unwrap();
+        println!(
+            "Public Signals:\n{:?}",
+            circom::export_public_signals(&public_signals)
+        );
+
+        let verified =
+            verifier::verify_proof_with_pkey(&proof, &public_signals, &prover_key).unwrap();
 
         assert!(verified, "Proof rejected!");
     }
@@ -129,21 +169,19 @@ mod tests {
         // compute witness (also checks constraints)
         let circom = circom::compute_witness(
             config,
-            BigUint::from_str("901231230202").unwrap(),
-            BigUint::from_str("3279874327432432781189").unwrap(),
-            BigUint::from_str("9811872342347234789723").unwrap(),
+            BigUint::from_str("123456789").unwrap(),
+            BigUint::from_str("1").unwrap(),
+            BigUint::from_str("2").unwrap(),
         )
         .unwrap();
 
-        // generate proof
         let proof = circom::prove_circuit(circom, &prover_key).unwrap();
 
-        // verify proof
         let verified = verifier::verify_proof_with_pkey_and_inputs(
             &proof,
-            "4067124373014308708177105322643381071508707955636716225484979994368986851155",
-            "2732420338720670314602072347502166430330577224322988181848067284864690653097",
-            "8646758398807199826551178606417613042628310445654232965303163379335986742820",
+            "7110303097080024260800444665787206606103183587082596139871399733998958991511",
+            "1",
+            "2",
             &prover_key,
         )
         .unwrap();
