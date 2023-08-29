@@ -2,9 +2,8 @@ use ark_bn254::{Bn254, Fr};
 use ark_circom::CircomReduction;
 use ark_groth16::{prepare_verifying_key, Groth16, Proof, ProvingKey};
 use ark_relations::r1cs::SynthesisError;
+use color_eyre::Result;
 use std::str::FromStr;
-
-type GrothBn254 = Groth16<Bn254, CircomReduction>;
 
 /// Verify a proof, using a prover key.
 ///
@@ -14,8 +13,11 @@ pub fn verify_proof_with_pkey(
     public_inputs: &[Fr],
     proving_key: &ProvingKey<Bn254>,
 ) -> Result<bool, SynthesisError> {
-    let verifier_key = &proving_key.vk;
-    GrothBn254::verify_proof(&prepare_verifying_key(verifier_key), &proof, &public_inputs)
+    Groth16::<Bn254, CircomReduction>::verify_proof(
+        &prepare_verifying_key(&proving_key.vk),
+        &proof,
+        &public_inputs,
+    )
 }
 
 /// Verify a proof, using a prover key and manually provided public inputs.
@@ -29,10 +31,13 @@ pub fn verify_proof_with_pkey_and_inputs(
     proving_key: &ProvingKey<Bn254>,
 ) -> Result<bool, SynthesisError> {
     let public_inputs = vec![
-        Fr::from_str(cur_value_hash).unwrap(),
-        Fr::from_str(next_value_hash).unwrap(),
-        Fr::from_str(digest).unwrap(),
+        Fr::from_str(cur_value_hash).expect(""),
+        Fr::from_str(next_value_hash).expect(""),
+        Fr::from_str(digest).expect(""),
     ];
 
     verify_proof_with_pkey(proof, &public_inputs, proving_key)
 }
+
+// TODO: maybe read verification key from file too in the future
+// if we really need a Rust verifier
